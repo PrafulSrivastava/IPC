@@ -46,7 +46,7 @@ int main() {
 	char write_buf[513] = "";
 	DWORD byt_written = 0;
 
-	c_status = CreatePipe(&hRead,&hWrite,NULL, 512);
+	c_status = CreatePipe(&hRead,&hWrite,NULL, MSGSIZE);
 	if (!c_status) {
 		cout << "Pipe creation failed || Error: " << GetLastError() << endl;
 		return -1;
