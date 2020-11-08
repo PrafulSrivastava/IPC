@@ -1,15 +1,18 @@
 #include <windows.h>
 #include <iostream>
 #include <queue>
-#include <map>
-#include <algorithm>
+#include <mutex>
+#include <thread>
 
 using namespace std;
 
 constexpr auto MSGSIZE = 5;
 constexpr auto MSGREADSIZE = MSGSIZE/2;
+mutex mut;
 
 bool readpipe(HANDLE hRead, char* write_buf, DWORD byt_written) {
+	cout << "Read Thread ID :" << this_thread::get_id() << endl;
+	lock_guard<mutex> lg(mut);
 	DWORD byt_read = 0;
 	bool r_status;
 	DWORD read = 0;
@@ -30,18 +33,18 @@ bool readpipe(HANDLE hRead, char* write_buf, DWORD byt_written) {
 	CloseHandle(hRead);
 }
 
-DWORD writepipe(HANDLE hWrite, char *read_buf) {
-	DWORD byt_written = 0;
+void writepipe(HANDLE hWrite, char *read_buf, DWORD &byt_written) {
+	cout << "Write Thread ID :" << this_thread::get_id() << endl;
+	lock_guard<mutex> lg(mut);
 	bool w_status;
 	w_status = WriteFile(hWrite, read_buf, MSGSIZE, &byt_written, NULL);
 	cout << "Bytes Write : " << byt_written << endl;
 	CloseHandle(hWrite);
 	if (!w_status) {
 		cout << "Write failed || Error: " << GetLastError() << endl;
-		return -1;
+		return ;
 	}
 	cout << "Write Successful!" << endl;
-	return byt_written;
 }
 
 int main() {
@@ -57,11 +60,14 @@ int main() {
 		return -1;
 	}
 	cout << "Pipe Created!\n";
-	byt_written = writepipe(hWrite, read_buf);
+	thread writeThread(&writepipe, hWrite,read_buf , std::ref(byt_written));
+	writeThread.join();
 	if (byt_written < 0) {
 		cout << "Nothing Written!" << endl;
 		return -1;
 	}
-	readpipe(hRead, write_buf, byt_written);
+	thread readThread(&readpipe, hRead, write_buf, byt_written);
+	readThread.join();
+	cout << "Final o/p: " << write_buf << endl;
 	return 0;
 }
