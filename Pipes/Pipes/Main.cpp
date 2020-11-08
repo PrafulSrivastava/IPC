@@ -6,23 +6,28 @@
 
 using namespace std;
 
-constexpr auto MSGSIZE = 512;;
+constexpr auto MSGSIZE = 5;
+constexpr auto MSGREADSIZE = MSGSIZE/2;
 
 bool readpipe(HANDLE hRead, char* write_buf, DWORD byt_written) {
 	DWORD byt_read = 0;
 	bool r_status;
-	r_status = ReadFile(hRead, write_buf, byt_written, &byt_read, NULL);
-	CloseHandle(hRead);
-	if (!r_status) {
-		cout << "Read failed || Error: " << GetLastError() << endl;
-		return -1;
-	}
+	DWORD read = 0;
+	while (byt_read < byt_written) {
+		r_status = ReadFile(hRead, write_buf+byt_read, MSGREADSIZE, &read, NULL);
+		if (!r_status) {
+			cout << "Read failed || Error: " << GetLastError() << endl;
+			return -1;
+		}
+		byt_read += read;
+		cout << "Bytes Read : " << byt_read << endl;
+		cout << "Cycle Output : " << write_buf << endl;
+	}	
 
-	cout << "Bytes Read : " << byt_read << endl;
+	cout << "Output : " << write_buf << endl;
 	write_buf[byt_read] = '\0';
 	cout << "Read Successful " << endl;
-	cout << "Output : " << write_buf << endl;
-	
+	CloseHandle(hRead);
 }
 
 DWORD writepipe(HANDLE hWrite, char *read_buf) {
